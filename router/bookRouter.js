@@ -1,6 +1,8 @@
 const express = require("express");
 const router = express.Router();
 const { generateToken } = require("../utils/authUtils");
+const { isAuthorized } = require("./isAuthorized");
+const { addToken, removeToken } = require("../services/tokens");
 
 let items = [
   { id: 1, title: "Book One", author: "Alice" },
@@ -8,9 +10,9 @@ let items = [
   { id: 3, title: "Book Three", author: "Carol" },
 ];
 let users = [{ username: "adi", password: "1234" }];
-let activeTokens = []; 
+let activeTokens = [];
 
-router.get("/items", (req, res) => {
+router.get("/items", isAuthorized, (req, res) => {
   res.json(items);
 });
 
@@ -25,17 +27,13 @@ router.post("/login", (req, res) => {
   }
 
   const token = generateToken(username);
-  activeTokens.push(token);
+  addToken(token);
 
   res.json({ token });
 });
-router.post("/logout", (req, res) => {
-  const { token } = req.body;
-
-  if (!token) {
-    return res.status(400).json({ message: "Token is required" });
-  }
-  activeTokens = activeTokens.filter((t) => t !== token);
+router.post("/logout", isAuthorized, (req, res) => {
+  const token = req.headers.authorization.split(" ")[1];
+  removeToken(token);
 
   res.json({ message: "Logged out successfully" });
 });
